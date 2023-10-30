@@ -33,3 +33,7 @@
 
 # IntelliJ
 .idea
+cmake-build-debug
+
+# DELETE AFTER THIS PROJECT:
+large_file.txt
