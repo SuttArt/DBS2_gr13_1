@@ -6,7 +6,7 @@
 //      Artem Suttar
 // HU-Account names:
 //      ---
-//      ---
+//      sitnerro
 //      suttarar
 // -------------------------------
 #include <iostream>
