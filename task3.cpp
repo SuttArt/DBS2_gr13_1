@@ -15,7 +15,36 @@
 #include <string>
 
 void sort_external_file(const std::string &input_file_name, const std::string &output_file_name) {
-    // Implement your solution here.
+    std::ifstream file(input_file_name);
+if (file.is_open()) {
+    std::string line;
+    while (std::getline(file, line)) {
+        // using printf() in all tests for consistency
+        printf("%s", line.c_str());
+    }
+    file.close();
+}
+
+    // creating an ifstream object named file
+    std::ifstream file_output;
+
+    // defining the file path
+    std::string pathOfFile = "../sorted_file.txt";
+
+    // attempting to open the file
+    file_output.open(pathOfFile);
+
+    // checking if the file opening was successful, it will only be true ie. file would have been opened, only if the file exists, so indirectly we are checking if the file exists or not on the given path by opening it from there, if opened, then the file exists, else does not exists
+    if (file_output)
+    {
+        // printing the success message
+        std::cout << "File exists" << std::endl;
+    }
+    else
+    {
+        // printing the error message
+        std::cout << "File does not exists" << std::endl;
+    }
     return;
 }
 
@@ -66,7 +95,7 @@ bool file_is_sorted(const std::string &file_name) {
 }
 
 int main() {
-    const std::string input_file_name = "../large_file.txt";
+    const std::string input_file_name = "../large_file_test.txt";
     const std::string output_file_name = "../sorted_file.txt";
 
     float memory_size = get_memory_usage();
