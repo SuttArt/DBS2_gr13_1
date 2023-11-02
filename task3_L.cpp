@@ -17,12 +17,12 @@
 #include <algorithm> //sort
 #include <queue>  // priority queue, vector
 
-//for more readability 
-typedef std::pair<int, int> pr; 
+//for more readability
+typedef std::pair<int, int> pr;
 
 
 
-void sort_external_file(const std::string &input_file_name, const std::string &output_file_name) { 
+void sort_external_file(const std::string &input_file_name, const std::string &output_file_name) {
     //-------------------------------------------------------------------------------------------------SORT
 
     //proof if the input file exists
@@ -31,35 +31,36 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
 
         /*check if outfile exists
             if: erase | if not: create
-            "w": Creates an empty file for writing. 
+            "w": Creates an empty file for writing.
             If a file with the same name already exists, its content is erased and the file is considered as a new empty file.
         */
 
         FILE *outfile = fopen(output_file_name.c_str(), "w");
         //------------------------------------------------------VARIABLES:
-        
+
         const long long BLOCK_SIZE = 5e7/ sizeof(int);  // Define a block size (in number of integers) to fit within 50 MB of memory.
         int block_i = 1;                                //Block counter
         std::vector<std::ifstream> tempFiles;           //to store the temp files => better access
         std::vector<std::string> str_tempFiles;         //to be able to delete them
         std::string line;                               //to read line by line
 
-        while (infile >> line) { //to prevent reading last empty line & proof if end of file is reached
-            
+        //TODO: how to prevent reading last empty line ?
+
+        while (!infile.eof()) { //proof if end of file is reached
+
             std::vector<int> buffer(BLOCK_SIZE);        //define the buffer with the max size
             int i = 0;                                  //index for buffer
 
-            
+
             //read the file line by line until the buffer limit is reached
             while (i < BLOCK_SIZE && std::getline(infile, line)) {
-                if(line.empty()) continue;              //skip empty lines
-                else{
-                    buffer[i] = atoi(line.c_str());     // string to integer
+                if(!line.empty()){
+                    buffer[i] = stoi(line);             // string to integer
                     i++;                                //update buffer location
                 }
             }
-            
-            std::sort(buffer.begin(), buffer.end());    //sort the current buffer
+            //sort the current buffer
+            std::sort(buffer.begin(), buffer.begin() + i);    //sort only the pos that are read
 
             //------------------------------------------sorted buffer to temp file
 
@@ -79,16 +80,16 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
                 }else{
                     tempFile << '\n' << buffer[j];      //write each number as one line
                 }
-                
+
             }
-            
+
             tempFile.close();                             //close the temp file after it
             tempFiles.push_back(std::ifstream(filename)); //store temp file
             str_tempFiles.push_back(filename);            //store temp filenames as strings to delete them later
             block_i++; //update Block counter
-            
+
         }
-        
+
         infile.close();                                   //close input file
         //-------------------------------------------------------------------------------------------------MERGE
 
@@ -97,11 +98,11 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
         //1st: number
         //2nd: index of temp file in vector
 
-        /*        
-           In C++ if the element is in the form of pairs, 
+        /*
+           In C++ if the element is in the form of pairs,
            then by default the priority of the elements is dependent upon the first element.
-           By default priority queues are max heaps. 
-           Therefore, we just have to use the priority queue of pairs with greater<> function object. 
+           By default priority queues are max heaps.
+           Therefore, we just have to use the priority queue of pairs with greater<> function object.
         */
 
         std::priority_queue<pr, std::vector<pr>, std::greater<pr>> pq; //stored as MinHeap
@@ -113,7 +114,7 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
             tempFile >> element;
             pq.push({element ,i});
         }
-        
+
         //NOTES:
         //Have to: .push() elements of buffer to pq
         //top() : first element (greatest prio)
@@ -126,32 +127,33 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
             int minValue = pq.top().first;                      //number
             int tempIndex = pq.top().second;                    //temp file index
 
-            pq.pop();                                           //erase min entry 
-
+            pq.pop();                                           //erase min entry
+            if (minValue == 1){
+            }
             std::string num = std::to_string(minValue) + " \n"; //create a string of number with line break
             fprintf(outfile, num.c_str());                      //write string to output file
 
-            
+
             if(!tempFiles[tempIndex].eof()){                    //proof if tempfile has elements to continue
                tempFiles[tempIndex] >> value;                   //take the next number of the temp file with the current min
                pq.push({value, tempIndex});                     //add new number to priority queue
             }else{
                 tempFiles[tempIndex].close();                   //close the temp file if the end is reached
             }
-        } 
+        }
 
-        
+
         for (int i = 0 ; i < str_tempFiles.size(); i++){       //delete all temp files after finishing the merge step
              std::remove(str_tempFiles[i].c_str());
         }
 
         fclose(outfile);                                       //close output file when we're ready
         return;
-    
+
     }else{                                                     //throw exception if input file does not exist
         std::cerr<< "The input file does not exist\n";
     }
-    
+
 }
 
 float get_memory_usage() {
