@@ -41,4 +41,7 @@ large_file.txt
 # VSCode
 .vscode
 
+# Text/Temp files
+*.txt
+
 build
