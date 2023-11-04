@@ -44,8 +44,6 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
         std::vector<std::string> str_tempFiles;         //to be able to delete them
         std::string line;                               //to read line by line
 
-        //TODO: how to prevent reading last empty line ?
-
         while (!infile.eof()) { //proof if end of file is reached
 
             std::vector<int> buffer(BLOCK_SIZE);        //define the buffer with the max size
@@ -70,20 +68,14 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
 
             //throw exception if file is not okay
             if (!tempFile.is_open()) {
-            std::cerr << "Failed to open the temporary file." << std::endl;
+                std::cerr << "Failed to open the temporary file." << std::endl;
             }
 
             //write current buffer to a temp file
             for (int j = 0; j < i; j++) {               //i: max pos in buffer
-                if (j == 0){
-                    tempFile << buffer[j];              //write first entry without a line break
-                }else{
-                    tempFile << '\n' << buffer[j];      //write each number as one line
-                }
-
+                tempFile << buffer[j] << "/n";     //write each number as one line
             }
 
-            tempFile.close();                             //close the temp file after it
             tempFiles.push_back(std::ifstream(filename)); //store temp file
             str_tempFiles.push_back(filename);            //store temp filenames as strings to delete them later
             block_i++; //update Block counter
@@ -111,8 +103,9 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
         for (int i = 0; i < tempFiles.size() ; i++){
             std::ifstream& tempFile = tempFiles[i];
             int element;
-            tempFile >> element;
-            pq.push({element ,i});
+            if(tempFile >> element){ //to prevent occurring errors with empty lines
+                pq.push({element ,i});
+            }
         }
 
         //NOTES:
@@ -128,15 +121,14 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
             int tempIndex = pq.top().second;                    //temp file index
 
             pq.pop();                                           //erase min entry
-            if (minValue == 1){
-            }
             std::string num = std::to_string(minValue) + " \n"; //create a string of number with line break
             fprintf(outfile, num.c_str());                      //write string to output file
 
 
             if(!tempFiles[tempIndex].eof()){                    //proof if tempfile has elements to continue
-               tempFiles[tempIndex] >> value;                   //take the next number of the temp file with the current min
-               pq.push({value, tempIndex});                     //add new number to priority queue
+               if(tempFiles[tempIndex] >> value){                   //take the next number of the temp file with the current min
+                 pq.push({value, tempIndex});                     //add new number to priority queue
+               }
             }else{
                 tempFiles[tempIndex].close();                   //close the temp file if the end is reached
             }
