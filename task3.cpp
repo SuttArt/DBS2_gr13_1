@@ -35,10 +35,11 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
             If a file with the same name already exists, its content is erased and the file is considered as a new empty file.
         */
 
-        FILE *outfile = fopen(output_file_name.c_str(), "w");
+        //trunc: create when missing, delete content if not
+        std::ofstream outfile(output_file_name, std::ios::out | std::ios::binary | std::ios::trunc);
         //------------------------------------------------------VARIABLES:
 
-        const long long BLOCK_SIZE = 5e7/ sizeof(int);  // Define a block size (in number of integers) to fit within 50 MB of memory.
+        const int BLOCK_SIZE = 5e7/ sizeof(int);  // Define a block size (in number of integers) to fit within 50 MB of memory.
         int block_i = 1;                                //Block counter
         std::vector<std::ifstream> tempFiles;           //to store the temp files => better access
         std::vector<std::string> str_tempFiles;         //to be able to delete them
@@ -48,14 +49,14 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
 
             std::vector<int> buffer(BLOCK_SIZE);        //define the buffer with the max size
             int i = 0;                                  //index for buffer
-
+            int num;
 
             //read the file line by line until the buffer limit is reached
-            while (i < BLOCK_SIZE && std::getline(infile, line)) {
-                if(!line.empty()){
-                    buffer[i] = stoi(line);             // string to integer
+            while (i < BLOCK_SIZE && infile >> num) {    //std::getline(infile, line)
+                //if(!line.empty()){
+                    buffer[i] =  num;           // string to integer    stoi(line);
                     i++;                                //update buffer location
-                }
+                //}
             }
             //sort the current buffer
             std::sort(buffer.begin(), buffer.begin() + i);    //sort only the pos that are read
@@ -64,7 +65,7 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
 
             std::string filename = "temp_buffer_" +std::to_string(block_i) + ".txt"; //create file name
                                                                                //open in write mode and erase content
-            std::ofstream tempFile(filename, std::ios::out | std::ios::trunc); //create and open a temporary file
+            std::ofstream tempFile(filename, std::ios::out | std::ios::binary | std::ios::trunc); //create and open a temporary file
 
             //throw exception if file is not okay
             if (!tempFile.is_open()) {
@@ -73,7 +74,7 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
 
             //write current buffer to a temp file
             for (int j = 0; j < i; j++) {               //i: max pos in buffer
-                tempFile << buffer[j] << "\n";     //write each number as one line
+                tempFile << buffer[j] << "\n";          //write each number as one line
             }
 
             tempFiles.push_back(std::ifstream(filename)); //store temp file
@@ -100,18 +101,34 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
         std::priority_queue<pr, std::vector<pr>, std::greater<pr>> pq; //stored as MinHeap
 
         //1st filling: take the first element of each temp file
-        for (int i = 0; i < tempFiles.size() ; i++){
+        //NOTE: block_i is already +1
+        for (int j = 0; j < (BLOCK_SIZE/block_i)/2; j++){ //only the half because of the pairs
+            for(int i = 0; i < tempFiles.size() ; i++){  //take elements of each tmp file until limit is reached
+                std::ifstream& tempFile = tempFiles[i];
+                int element;
+                if(tempFile >> element){ //to prevent occurring errors with empty lines
+                    pq.push({element ,i});
+                }
+            }
+        }
+
+        //solution with only one value of each tempfile
+        /*for (int i = 0; i < tempFiles.size() ; i++){
             std::ifstream& tempFile = tempFiles[i];
             int element;
             if(tempFile >> element){ //to prevent occurring errors with empty lines
                 pq.push({element ,i});
             }
-        }
+        }*/
 
         //NOTES:
         //Have to: .push() elements of buffer to pq
         //top() : first element (greatest prio)
         //pop() : erase first element
+
+        //define some variables to save minValues in a vector
+        std::vector<int> sort_out(BLOCK_SIZE/block_i);
+        int sort_counter = 0;
 
         //keep going if priority queue is not empty
         while (!pq.empty()){
@@ -121,9 +138,18 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
             int tempIndex = pq.top().second;                    //temp file index
 
             pq.pop();                                           //erase min entry
-            std::string num = std::to_string(minValue) + " \n"; //create a string of number with line break
-            fprintf(outfile, num.c_str());                      //write string to output file
-
+            //collect minValues until limit of sort buffer is reached
+            if(sort_counter < BLOCK_SIZE/block_i){
+               sort_out[sort_counter] = minValue;
+               sort_counter++;
+            }
+            else{ //if vector full, write to disk
+                for(int i = 0; i < sort_counter; i++){
+                    outfile << sort_out[i] << "\n" ;
+                }
+                sort_counter = 0;                           //reset values
+                std::vector<int> sort_out(BLOCK_SIZE/block_i);
+            }
 
             if(!tempFiles[tempIndex].eof()){                    //proof if tempfile has elements to continue
                if(tempFiles[tempIndex] >> value){                   //take the next number of the temp file with the current min
@@ -134,12 +160,20 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
             }
         }
 
-
-        for (int i = 0 ; i < str_tempFiles.size(); i++){       //delete all temp files after finishing the merge step
-             std::remove(str_tempFiles[i].c_str());
+        //when buffer is not empty then write to disk
+        if(sort_out[0] != 0){
+            for(int i = 0; i < sort_counter; i++){
+                outfile << sort_out[i] << "\n" ;
+            }
         }
 
-        fclose(outfile);                                       //close output file when we're ready
+
+
+        for (int i = 0 ; i < str_tempFiles.size(); i++){       //delete all temp files after finishing the merge step
+            std::remove(str_tempFiles[i].c_str());
+        }
+
+        outfile.close();
         return;
 
     }else{                                                     //throw exception if input file does not exist
