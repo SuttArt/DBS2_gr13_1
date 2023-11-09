@@ -73,7 +73,7 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
 
             //write current buffer to a temp file
             for (int j = 0; j < i; j++) {               //i: max pos in buffer
-                tempFile << buffer[j] << "/n";     //write each number as one line
+                tempFile << buffer[j] << "\n";     //write each number as one line
             }
 
             tempFiles.push_back(std::ifstream(filename)); //store temp file
