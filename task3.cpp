@@ -132,18 +132,26 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
 
         //keep going if priority queue is not empty
         while (!pq.empty()){
-
-            int value;                                          //to store top element of pq
-            int minValue = pq.top().first;                      //number
-            int tempIndex = pq.top().second;                    //temp file index
-
-            pq.pop();                                           //erase min entry
             //collect minValues until limit of sort buffer is reached
             if(sort_counter < BLOCK_SIZE/block_i){
-               sort_out[sort_counter] = minValue;
-               sort_counter++;
+                int value;                                          //to store top element of pq
+                int minValue = pq.top().first;                      //number
+                int tempIndex = pq.top().second;                    //temp file index
+                pq.pop();                                           //erase min entry
+
+                sort_out[sort_counter] = minValue;
+                sort_counter++;
+
+                if(!tempFiles[tempIndex].eof()){                    //proof if tempfile has elements to continue
+                if(tempFiles[tempIndex] >> value){                   //take the next number of the temp file with the current min
+                    pq.push({value, tempIndex});                     //add new number to priority queue
+                }
+                }else{
+                    tempFiles[tempIndex].close();                   //close the temp file if the end is reached
+                }
             }
             else{ //if vector full, write to disk
+                //std::cout<< sort_out[sort_counter] << "\n";
                 for(int i = 0; i < sort_counter; i++){
                     outfile << sort_out[i] << "\n" ;
                 }
@@ -151,13 +159,7 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
                 std::vector<int> sort_out(BLOCK_SIZE/block_i);
             }
 
-            if(!tempFiles[tempIndex].eof()){                    //proof if tempfile has elements to continue
-               if(tempFiles[tempIndex] >> value){                   //take the next number of the temp file with the current min
-                 pq.push({value, tempIndex});                     //add new number to priority queue
-               }
-            }else{
-                tempFiles[tempIndex].close();                   //close the temp file if the end is reached
-            }
+
         }
 
         //when buffer is not empty then write to disk
