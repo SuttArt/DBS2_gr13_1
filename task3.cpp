@@ -151,7 +151,6 @@ void sort_external_file(const std::string &input_file_name, const std::string &o
                 }
             }
             else{ //if vector full, write to disk
-                //std::cout<< sort_out[sort_counter] << "\n";
                 for(int i = 0; i < sort_counter; i++){
                     outfile << sort_out[i] << "\n" ;
                 }
