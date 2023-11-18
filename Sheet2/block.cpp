@@ -1,7 +1,13 @@
 // -------------------------------
-// Group:
+// Group: 13
 // Members:
-// HU-Account names:
+//      Charlotte Kauter
+//      Robert Sitner
+//      Artem Suttar
+//HU-Account names:
+//      kauterch
+//      sitnerro
+//      suttarar
 // -------------------------------
 #include <memory>
 #include <string>
@@ -15,6 +21,9 @@
 
 #include "header/record.h"
 #include "header/block.h"
+
+//added:
+#include <string>
 
 Block::Block(std::string const& block_id) {
     // enforce length constraint
@@ -183,10 +192,49 @@ bool Block::is_dirty()
     return dirty;
 }
 
+//stores content of a block in a local file
 bool Block::write_data()
 {
-    // Implement your solution here
-    return false;
+    std::string block_id = get_block_id();
+    //dirty is a mechanism to check if a block changed
+    //Therefore: we do not have to write this block if nothing changed
+    if(!dirty){
+        std::cout << "No reason to write block "<< block_id << " because no changes were made\n";
+        return false;
+    }
+    std::string filename = BLOCK_DIR + block_id;
+    std::ofstream blockFile(filename, std::ios::out | std::ios::binary | std::ios::trunc);
+
+    //check if file is ready to write
+    if(!blockFile.is_open()){
+        std::cerr << "Failed to open file "<< filename <<  std::endl;
+        return false;
+    }
+
+    //TODO: check why it has to be this way --> trial and error as well as copy and paste
+    // data.get():  gets raw pointer from the std::shared_ptr<void>
+    // get(): member function of std::shared_ptr that returns the stored pointer without affecting the reference count
+    // pointer of type void* (std::shared_ptr<void>)
+    // static_cast<char*>: converts the void* pointer to a char* pointer
+    // static_cast is a type of casting in C++ that is used at compile time to convert one type to another related type
+
+    //get data of block
+    char* blockData = static_cast<char*>(data.get());
+
+    //write block to file --> can not use << (do not want lines separated by whitespaces)
+    blockFile.write(blockData, BLOCK_SIZE);
+
+    //check if write process was successful
+    if(!blockFile){
+        std::cerr << "The process of writing block " << block_id << "to file " << filename << " failed\n";
+        return false;
+    }
+    //close file
+    blockFile.close();
+    //reset dirty value
+    dirty = false;
+
+    return true;
 }
 
 std::shared_ptr<void> Block::load_data(std::string const& block_id)

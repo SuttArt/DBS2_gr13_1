@@ -1,7 +1,13 @@
 // -------------------------------
-// Group:
+// Group: 13
 // Members:
-// HU-Account names:
+//      Charlotte Kauter
+//      Robert Sitner
+//      Artem Suttar
+//HU-Account names:
+//      kauterch
+//      sitnerro
+//      suttarar
 // -------------------------------
 #ifndef TASK_3_BLOCK_H
 #define TASK_3_BLOCK_H
