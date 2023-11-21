@@ -211,7 +211,7 @@ bool Block::write_data()
         return false;
     }
 
-    //TODO: check why it has to be this way --> trial and error as well as copy and paste
+    //TODO: check why it has to be this way
     // data.get():  gets raw pointer from the std::shared_ptr<void>
     // get(): member function of std::shared_ptr that returns the stored pointer without affecting the reference count
     // pointer of type void* (std::shared_ptr<void>)
@@ -234,6 +234,7 @@ bool Block::write_data()
     //reset dirty value
     dirty = false;
 
+    //before: false?????
     return true;
 }
 

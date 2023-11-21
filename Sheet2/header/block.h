@@ -47,7 +47,6 @@ public:
 
 private:
     std::shared_ptr<void> load_data(std::string const& block_id);
-
     std::shared_ptr<void> data;
     bool dirty;
 };
