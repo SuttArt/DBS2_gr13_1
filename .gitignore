@@ -37,11 +37,9 @@ cmake-build-debug
 
 # DELETE AFTER THIS PROJECT:
 large_file.txt
+sorted_file.txt
 
 # VSCode
 .vscode
-
-# Text/Temp files
-*.txt
 
 build
