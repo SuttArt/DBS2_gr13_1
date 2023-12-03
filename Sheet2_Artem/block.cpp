@@ -185,8 +185,25 @@ bool Block::is_dirty()
 
 bool Block::write_data()
 {
-    // Implement your solution here
-    return false;
+    bool status = false;
+    if (is_dirty()){
+        std::fstream file(BLOCK_DIR + get_block_id(), std::ios::binary | std::ios::out);
+
+        // Check if the file is successfully opened
+        if (file.is_open()) {
+            // Write data from the data shared_ptr to the file
+            file.write(static_cast<char *>(data.get()), BLOCK_SIZE);
+
+            file.close();
+
+            dirty = false;
+            status = true;
+        } else {
+            file.close();
+        }
+    }
+
+    return status;
 }
 
 std::shared_ptr<void> Block::load_data(std::string const& block_id)
