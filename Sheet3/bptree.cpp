@@ -267,9 +267,17 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
     int index = it - values.begin();
 
     // Insert the attribute and record ID at the found position
-    values.insert(it, attribute);
-    //need an integer to be able to insert
-    record_ids.insert(record_ids.begin() + index, record_id);
+    if (index < values.size()){
+        values.insert(it, attribute);
+        record_ids.insert(record_ids.begin() + index, record_id);
+    }else{
+        values.push_back(attribute);
+        if(record_ids.size() > 1){
+            record_ids.insert(record_ids.end() - 1, record_id);
+        }else{
+            record_ids.push_back(record_id);
+        }
+    }
 
     // Update the node with new values and record IDs
     change_values(values);
@@ -277,27 +285,40 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
 
     //check if overflow
     if(values.size() >= BPTreeNode::MAX_VALUES){
-        // Additional children id; pointer to next leaf
-        // Assuming the last element in record_ids is the next leaf pointer
-        std::string next_leaf_pointer = record_ids.back();
-        record_ids.pop_back(); // Remove the next pointer before resizing
 
         // Create a new leaf
         std::string new_leaf_id = buffer_manager->create_new_block();
         std::shared_ptr<BPTreeNode> new_leaf = BPTreeNode::create_node(buffer_manager, new_leaf_id, get_parent_id(), true);
 
         //median
-        int median_index = (values.size()+1)/2;
+        //+1
+        int median_index = (values.size())/2;
         int median = values[median_index];
 
         // Move half of the values and record IDs to the new node
-        std::vector<int> new_values(values.begin() + median_index, values.end());
-        std::vector<std::string> new_record_ids(record_ids.begin() + median_index, record_ids.end());
+        std::vector<int> new_values(values.begin() + median_index+1, values.end());
+        std::vector<std::string> new_record_ids(record_ids.begin() + median_index+1, record_ids.end());
+
+         // Update next leaf pointer in the original node
+        //if (record_ids.size() == (values.size()+1)){
+        //    record_ids[record_ids.size() - 1] = new_leaf_id;
+        //}else{
+            record_ids.push_back(new_leaf_id); // Point to the new leaf
+        //}
+
+        std::cout << record_ids.size() << " " << values.size() << "\n";
+        for (const auto& item : values) {
+        std::cout << item << " ";
+        }
+        std::cout << std::endl;
+        for (const auto& item : record_ids) {
+        std::cout << item << " ";
+        }
+        std::cout << std::endl;
 
         // Resize and update the original node
-        values.resize(median_index);
-        record_ids.resize(median_index);
-        record_ids.push_back(new_leaf_id); // Point to the new leaf
+        values.resize(median_index+1);
+        record_ids.resize(median_index+2);
 
         //Save changes in original node
         change_values(values);
@@ -307,8 +328,27 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
         new_leaf->change_values(new_values);
         new_leaf->change_children_ids(new_record_ids);
 
-        //propagation is done later
+        std::cout << "\n MEDIAN: " << median << "\n \n";
 
+        //propagation is done later
+        std::cout << record_ids.size() << " " << values.size() << "\n";
+        for (const auto& item : values) {
+        std::cout << item << " ";
+        }
+        std::cout << std::endl;
+        for (const auto& item : record_ids) {
+        std::cout << item << " ";
+        }
+        std::cout << std::endl;
+        std::cout << new_record_ids.size() << " " << new_values.size() << "\n";
+        for (const auto& item : new_values) {
+        std::cout << item << " ";
+        }
+        std::cout << std::endl;
+        for (const auto& item : new_record_ids) {
+        std::cout << item << " ";
+        }
+        std::cout << std::endl;
         // Return the new node and the median
         return std::make_pair(new_leaf, median);
     }
@@ -326,15 +366,21 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
     auto it = std::lower_bound(values.begin(), values.end(), attribute);
     int index = it - values.begin();
 
-    // Insert the attribute and record ID at the found position
+       // Insert the attribute and record ID at the found position
     values.insert(it, attribute);
-    /// Insert the right child ID at index + 1; left child is already there
-    children_ids.insert(children_ids.begin() + index + 1, right_children_id);
+    // Check if children_ids is empty and handle the first insertion
+    if (children_ids.empty()) {
+        // This is the first insertion into this internal node
+        children_ids.push_back(left_children_id); // Insert left child at the beginning
+        children_ids.push_back(right_children_id); // Insert right child next
+    } else {
+        // For subsequent insertions, insert the right child ID at the correct position
+        children_ids.insert(children_ids.begin() + index + 1, right_children_id);
+    }
 
     // Update the node with new values and children IDs
     change_values(values);
     change_children_ids(children_ids);
-
 
     //check if overflow
     if(values.size() >= BPTreeNode::MAX_VALUES){
@@ -343,15 +389,18 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
         std::shared_ptr<BPTreeNode> new_node = BPTreeNode::create_node(buffer_manager, new_node_id, get_parent_id(), true);
 
         //median
-        int median_index = (values.size()+1)/2;
+        //excluding in both nodes
+        //push to parent
+        int median_index = values.size() / 2;
         int median = values[median_index];
 
         // Move the second half of the values and children to the new node
         std::vector<int> new_values(values.begin() + median_index + 1, values.end());
         std::vector<std::string> new_children_ids(children_ids.begin() + median_index + 1, children_ids.end());
 
-        values.erase(values.begin() + median_index, values.end());
-        children_ids.erase(children_ids.begin() + median_index, children_ids.end());
+        //resize original node
+        values.resize(median_index);
+        children_ids.resize(median_index + 1);  // Keeping the extra child ID
 
         change_values(values);
         change_children_ids(children_ids);
@@ -383,6 +432,17 @@ std::optional<std::string> BPTree::search_record(int attribute)
     std::vector<int> values = leaf_node->get_values();
     // children IDs are record IDs in leaf nodes
     std::vector<std::string> record_ids = leaf_node->get_children_ids();
+
+    std::cout << "attr: " << attribute << "\n";
+    for (const auto& item : values) {
+        std::cout << item << " ";
+    }
+    std::cout << std::endl;
+
+    for (const auto& item : record_ids) {
+        std::cout << item << " ";
+    }
+    std::cout << std::endl;
 
     // search for attribute
     for (int i = 0; i < values.size(); i++)
@@ -423,7 +483,6 @@ bool BPTree::insert_record(int attribute, std::string const& record_id)
     std::shared_ptr<BPTreeNode> child = new_node;
 
     while (true) {
-        //std::cout << "propagate \n";
         // check if current is root
         if (current->get_parent_id() == NO_PARENT) {
             // create new root

@@ -330,9 +330,13 @@ static void test_bptree() {
 
     // Shuffle the vector using the generator
     std::shuffle(numbers.begin(), numbers.end(), gen);
+    int count = 0;
+
     for (int i : numbers)
     {
         std::string record_id = Block::create_record_id("-----", i);
+        count++;
+        std::cout << "----------------------------------------" << count << "\n";
         assert(bptree->insert_record(i, record_id));
     }
     std::cout<< "finished inserts \n";
