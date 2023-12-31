@@ -37,6 +37,7 @@ cmake-build-debug
 
 # DELETE AFTER THIS PROJECT:
 large_file.txt
+large_file_test.txt
 
 # VSCode
 .vscode
