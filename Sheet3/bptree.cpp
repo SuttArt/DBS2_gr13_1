@@ -1,13 +1,5 @@
 // -------------------------------
-// Group: 13
-// Members:
-//      Charlotte Kauter
-//      Robert Sitner
-//      Artem Suttar
-//HU-Account names:
-//      kauterch
-//      sitnerro
-//      suttarar
+
 // -------------------------------
 #include <memory>
 #include <string>
@@ -257,31 +249,89 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
     std::vector<int> values = get_values();
     std::vector<std::string> record_ids = get_children_ids();
 
+    std::cout << record_ids.size() << " " << values.size() << "\n";
+
     //proof if record is already present (duplicates)
     if(std::find(values.begin(), values.end(), attribute) != values.end()){
         throw std::invalid_argument("Duplicate value not allowed");
     }
+    std::string next_leaf_ptr;
+    bool leaf_ptr = false;
+
+    for (const auto& item : record_ids) {
+    std::cout << item << " ";
+    }
+    std::cout << std::endl;
+
+    // Check if the record_ids vector is not empty
+    if (!record_ids.empty()) {
+        // Get the last element
+        next_leaf_ptr = record_ids.back();
+        std::cout << "back id: " << next_leaf_ptr << "\n";
+
+        // Check if the last value is really a leaf pointer and not a record ID
+        if (next_leaf_ptr.find('-') == std::string::npos) {
+            // Remove the pointer as it is a leaf pointer
+            record_ids.pop_back();
+            leaf_ptr = true;
+        }
+    }
+
 
     // Find the correct position to insert
     auto it = std::lower_bound(values.begin(), values.end(), attribute);
     int index = it - values.begin();
 
+    std::cout << "attr: " << attribute << "\n";
+    std::cout << "index: " << index << "\n";
+    if(index-1 > 0){
+    std::cout << "previous: " << values[index-1] << ", next: " << values[index] << "\n";
+    }
     // Insert the attribute and record ID at the found position
-    if (index < values.size()){
+    //if (index < values.size()){
         values.insert(it, attribute);
         record_ids.insert(record_ids.begin() + index, record_id);
-    }else{
+    /*}else{
         values.push_back(attribute);
         if(record_ids.size() > 1){
-            record_ids.insert(record_ids.end() - 1, record_id);
-        }else{
-            record_ids.push_back(record_id);
+            record_ids.insert(record_ids.end(), record_id);
+        }else{std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_record(int attribute, std::string const& record_id)
+{
+    //get present values and record ids
+    std::vector<int> values = get_values();
+    std::vector<std::string> record_ids = get_children_ids();
+
+    std::cout << record_ids.size() << " " << values.size() << "\n";
+
+    //proof if record is already present (duplicates)
+    if(std::find(values.begin(), values.end(), attribute) != values.end()){
+        throw std::invalid_argument("Duplicate value not allowed");
+    }
+    std::string next_leaf_ptr;
+    bool leaf_ptr = false;
+
+    // Check if the record_ids vector is not empty
+    if (!record_ids.empty()) {
+        // Get the last element
+        next_leaf_ptr = record_ids.back();
+        std::cout << "back id: " << next_leaf_ptr << "\n";
+
+        // Check if the last value is really a leaf pointer and not a record ID
+        if (next_leaf_ptr.find('-') == std::string::npos) {
+            // Remove the pointer as it is a leaf pointer
+            record_ids.pop_back();
+            leaf_ptr = true;
         }
     }
 
-    // Update the node with new values and record IDs
-    change_values(values);
-    change_children_ids(record_ids);
+
+    // Find the correct position to insert
+    auto it = std::lower_bound(values.begin(), values.end(), attribute);
+    int index = it - values.begin();
+
+            record_ids.push_back(record_id);
+        }
+    }*/
 
     //check if overflow
     if(values.size() >= BPTreeNode::MAX_VALUES){
@@ -290,21 +340,23 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
         std::string new_leaf_id = buffer_manager->create_new_block();
         std::shared_ptr<BPTreeNode> new_leaf = BPTreeNode::create_node(buffer_manager, new_leaf_id, get_parent_id(), true);
 
+        std::cout << "new leaf id: " << new_leaf_id << "\n";
         //median
         //+1
         int median_index = (values.size())/2;
         int median = values[median_index];
 
         // Move half of the values and record IDs to the new node
+        // new leaf should not contain the median => +1
         std::vector<int> new_values(values.begin() + median_index+1, values.end());
         std::vector<std::string> new_record_ids(record_ids.begin() + median_index+1, record_ids.end());
 
-         // Update next leaf pointer in the original node
-        //if (record_ids.size() == (values.size()+1)){
-        //    record_ids[record_ids.size() - 1] = new_leaf_id;
-        //}else{
-            record_ids.push_back(new_leaf_id); // Point to the new leaf
-        //}
+        if(leaf_ptr){
+            //if pointer exists, add to vector
+            new_record_ids.push_back(next_leaf_ptr);
+            std::cout << "There is a leaf id \n";
+            std::cout << next_leaf_ptr << "\n";
+        }
 
         std::cout << record_ids.size() << " " << values.size() << "\n";
         for (const auto& item : values) {
@@ -318,7 +370,16 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
 
         // Resize and update the original node
         values.resize(median_index+1);
-        record_ids.resize(median_index+2);
+        record_ids.resize(median_index+1);
+        record_ids.push_back(new_leaf_id); // Point to the new leaf
+
+         // Update next leaf pointer in the original node
+        //if (record_ids.size() == (values.size()+1)){
+        //    record_ids[record_ids.size() - 1] = new_leaf_id;
+        //}else{
+
+        //}
+
 
         //Save changes in original node
         change_values(values);
@@ -353,6 +414,16 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
         return std::make_pair(new_leaf, median);
     }
 
+    if(leaf_ptr){
+        //if pointer exists, add to vector
+        record_ids.push_back(next_leaf_ptr);
+        //std::cout <<
+    }
+
+    // Update the node with new values and record IDs
+    change_values(values);
+    change_children_ids(record_ids);
+
     return std::nullopt;
 }
 
@@ -378,6 +449,15 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
         children_ids.insert(children_ids.begin() + index + 1, right_children_id);
     }
 
+    for (const auto& item : values) {
+    std::cout << item << " ";
+    }
+    std::cout << std::endl;
+    for (const auto& item : children_ids) {
+    std::cout << item << " ";
+    }
+    std::cout << std::endl;
+
     // Update the node with new values and children IDs
     change_values(values);
     change_children_ids(children_ids);
@@ -400,7 +480,7 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
 
         //resize original node
         values.resize(median_index);
-        children_ids.resize(median_index + 1);  // Keeping the extra child ID
+        children_ids.resize(median_index+1);  // Keeping the extra child ID
 
         change_values(values);
         change_children_ids(children_ids);
@@ -409,7 +489,25 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
         new_node->change_children_ids(new_children_ids);
 
         //propagation is done later
+        /*
+            for (const auto& item : values) {
+            std::cout << item << " ";
+            }
+            std::cout << std::endl;
+            for (const auto& item : children_ids) {
+            std::cout << item << " ";
+            }
+            std::cout << std::endl;
 
+            for (const auto& item : new_values) {
+            std::cout << item << " ";
+            }
+            std::cout << std::endl;
+            for (const auto& item : new_children_ids) {
+            std::cout << item << " ";
+            }
+            std::cout << std::endl;
+        */
         // Return the new node and the median
         return std::make_pair(new_node, median);
     }

@@ -317,8 +317,8 @@ static void test_bptree() {
 
     // test BP tree insert
     std::shared_ptr<BPTree> bptree = std::make_shared<BPTree>(buffer, root_node_id);
+    //int n_entries = 10000;
     int n_entries = 10000;
-
     // Initialize Mersenne Twister pseudo-random number generator with a seed
     std::mt19937 gen(1379);
 
