@@ -1,0 +1,92 @@
+@startuml
+
+class Record {
+  - data: std::shared_ptr<void>
+  + Record(data: std::shared_ptr<void> const&)
+  + Record(record_id: std::string const&, attributes: std::vector<Attribute> const&)
+  + get_record_id(): std::string
+  + get_string_attribute(attribute_index: int): std::string
+  + get_integer_attribute(attribute_index: int): int
+  + get_boolean_attribute(attribute_index: int): bool
+  + get_data(): std::shared_ptr<void>
+  + get_size(): int
+  + static const RECORD_ID_SIZE: int = 10
+}
+
+note "Attribute is a typedef\nfor std::variant<int, std::string, bool>" as Note_Attribute
+
+
+class Block {
+  - data: std::shared_ptr<void>
+  - dirty: bool
+  + Block(block_id: std::string const&)
+  + get_block_id(): std::string
+  + get_record(record_id: std::string const&): std::shared_ptr<Record>
+  + add_record(attributes: std::vector<Record::Attribute> const&): std::shared_ptr<Record>
+  + update_record(record: std::shared_ptr<Record> const&): bool
+  + delete_record(record_id: std::string const&): bool
+  + is_dirty(): bool
+  + write_data(): bool
+  + create_block_id(offset: int): std::string
+  + create_record_id(block_id: std::string const&, offset: int): std::string
+  + get_block_id(record_id: std::string const&): std::string
+  + get_block_dictionary_offset(record_id: std::string const&): int
+  + static const BLOCK_ID_SIZE: int
+  + static const BLOCK_SIZE: int
+  + static const BLOCK_DIR: std::string
+  + static const MAX_RECORDS: int
+  - load_data(block_id: std::string const&): std::shared_ptr<void>
+}
+
+class BufferManager {
+  - n_blocks: int
+  - cache: std::unordered_map<std::string, CacheEntry>
+  - unfixed_blocks: std::list<std::string>
+  + BufferManager(n_blocks: int)
+  + fix_block(block_id: std::string const&): std::shared_ptr<Block>
+  + unfix_block(block_id: std::string const&): bool
+  + block_exists(block_id: std::string const&): bool
+  + create_new_block(): std::string
+  + struct CacheEntry
+  + static const BLOCK_ID: std::string
+}
+
+class BPTreeNode {
+  - buffer_manager: std::shared_ptr<BufferManager>
+  - block_id: std::string
+  + BPTreeNode(buffer_manager: std::shared_ptr<BufferManager> const&, node_id: std::string const&)
+  + get_node_id(): std::string
+  + get_parent_id(): std::string
+  + is_leaf(): bool
+  + get_values(): std::vector<int>
+  + get_children_ids(): std::vector<std::string>
+  + change_parent_id(parent_id: std::string): bool
+  + change_values(values: std::vector<int> const&): bool
+  + change_children_ids(children_ids: std::vector<std::string> const&): bool
+  + insert_record(attribute: int, record_id: std::string const&): std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>>
+  + insert_value(attribute: int, left_children_id: std::string const&, right_children_id: std::string const&): std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>>
+  + static create_node(buffer_manager: std::shared_ptr<BufferManager> const&, node_id: std::string const&, parent_id: std::string, leaf: bool): std::shared_ptr<BPTreeNode>
+  + static const MAX_VALUES: int
+  + static const MAX_CHILDREN: int
+}
+
+class BPTree {
+  - buffer_manager: std::shared_ptr<BufferManager>
+  - root_node_id: std::string
+  + BPTree(buffer_manager: std::shared_ptr<BufferManager> const&, root_node_id: std::string const&)
+  + search_record(attribute: int): std::optional<std::string>
+  + insert_record(attribute: int, record_id: std::string const&): bool
+  + get_root_node_id(): std::string
+  - find_leaf_node(attribute: int): std::shared_ptr<BPTreeNode>
+  + static const NO_PARENT: std::string
+}
+
+
+Record --> Note_Attribute
+Record --* Block
+Block --* BufferManager
+BPTreeNode --* BPTreeNode
+BPTreeNode --* BPTree
+BPTree --* BufferManager
+
+@enduml

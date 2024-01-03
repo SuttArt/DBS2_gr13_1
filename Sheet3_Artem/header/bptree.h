@@ -8,6 +8,9 @@
 #include "block.h"
 #include "buffer_manager.h"
 
+//TODO: Delete after all, need for my Ubuntu
+#include <stdexcept>
+
 class BPTreeNode
 {
 public:
