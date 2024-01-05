@@ -316,9 +316,8 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
 
     // create new leaf node
     std::string node_id_new_leaf_node = buffer_manager->create_new_block();
-    std::string parent_id_new_leaf_node = buffer_manager->create_new_block();
 
-    std::shared_ptr<BPTreeNode> new_leaf_node = create_node(buffer_manager, node_id_new_leaf_node, parent_id_new_leaf_node, true);
+    std::shared_ptr<BPTreeNode> new_leaf_node = create_node(buffer_manager, node_id_new_leaf_node, get_parent_id(), true);
 
     // write new data to original leaf node
     assert(new_leaf_node->change_values(new_leaf_node_values));
@@ -329,8 +328,6 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
     // write new data to original leaf node
     assert(change_values(original_leaf_node_values));
     assert(change_children_ids(original_leaf_node_children));
-
-    // add pointer to new parent
 
     return std::make_pair(new_leaf_node, median);
 }
