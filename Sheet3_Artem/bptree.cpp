@@ -329,6 +329,8 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
     assert(change_values(original_leaf_node_values));
     assert(change_children_ids(original_leaf_node_children));
 
+    buffer_manager->unfix_block(block_id);
+
     return std::make_pair(new_leaf_node, median);
 }
 
