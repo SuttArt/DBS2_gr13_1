@@ -8,6 +8,9 @@
 #include <cassert>
 #include <optional>
 #include <vector>
+#include <iostream>
+#include <set>
+#include <algorithm>
 
 #include "header/record.h"
 #include "header/block.h"
@@ -242,8 +245,57 @@ std::shared_ptr<BPTreeNode> BPTreeNode::create_node(std::shared_ptr<BufferManage
 
 std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_record(int attribute, std::string const& record_id)
 {
-    // Implement your solution here
-    return std::nullopt;
+    std::shared_ptr<Block> block = buffer_manager->fix_block(block_id);
+
+    if (block == nullptr)
+        throw std::invalid_argument("Cannot load index block: " + block_id);
+
+    std::vector<int> values = get_values();
+    std::vector<std::string> children = get_children_ids();
+
+    // if we don't have to split node
+    if (values.size() < MAX_VALUES) {
+        if (hasDuplicates(values))
+            throw std::invalid_argument("Cannot have duplicate values in index block: " + block_id);
+
+        // Merge two vectors to keep data together
+        std::vector<std::pair<int, std::string>> values_ids;
+
+        for (size_t i = 0; i < values.size(); ++i) {
+            values_ids.push_back(std::make_pair(values[i], children[i]));
+        }
+
+        // if we have last pointer without value
+        if (values.size() - children.size() == 1) {
+            std::string last_child = children.back();
+        }
+
+        // add new values
+        values_ids.push_back(std::make_pair(attribute, record_id));
+
+        std::sort(values_ids.begin(), values_ids.end(),
+                  [](const auto& a, const auto& b) {
+                      return a.first < b.first;
+                  });
+
+
+        // split vectors
+        for (const auto& pair : values_ids) {
+            values.push_back(pair.first);
+            children.push_back(pair.second);
+        }
+
+
+        assert(change_values(values));
+        assert(change_children_ids(children));
+
+        return std::nullopt;
+    }
+
+    // if we have to split node
+    int median;
+
+    return std::make_pair(std::make_shared<BPTreeNode>(buffer_manager, block_id), median);
 }
 
 std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_value(int attribute, std::string const& left_children_id, std::string const& right_children_id)
@@ -252,6 +304,21 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
     return std::nullopt;
 }
 
+bool BPTreeNode::hasDuplicates(const std::vector<int>& numbers) {
+    std::set<int> uniqueNumbers;
+
+    for (int num : numbers) {
+        // Try to insert the current number into the set
+        auto result = uniqueNumbers.insert(num);
+
+        // If the insertion fails, it means the number is already present (duplicate)
+        if (!result.second) {
+            return true; // Duplicate found
+        }
+    }
+
+    return false; // No duplicates found
+}
 
 BPTree::BPTree(std::shared_ptr<BufferManager> const& buffer_manager, std::string const& root_node_id)
 : buffer_manager(buffer_manager), root_node_id(root_node_id)
