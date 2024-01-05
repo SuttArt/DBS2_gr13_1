@@ -10,6 +10,7 @@
 
 //TODO: Delete after all, need for my Ubuntu
 #include <stdexcept>
+#include <cmath>
 
 class BPTreeNode
 {
@@ -43,6 +44,7 @@ public:
 
 private:
     bool hasDuplicates(const std::vector<int>& numbers);
+    std::pair<int, int> findMedian(const std::vector<int>& numbers);
 
     std::shared_ptr<BufferManager> buffer_manager;
     std::string block_id;
