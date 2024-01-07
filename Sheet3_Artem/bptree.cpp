@@ -245,11 +245,9 @@ std::shared_ptr<BPTreeNode> BPTreeNode::create_node(std::shared_ptr<BufferManage
 
 std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_record(int attribute, std::string const& record_id)
 {
-    std::shared_ptr<Block> block = buffer_manager->fix_block(block_id);
-
-    if (block == nullptr)
-        throw std::invalid_argument("Cannot load index block: " + block_id);
-
+if (attribute == 912){
+    std::cout << attribute;
+}
     std::vector<int> values = get_values();
     std::vector<std::string> children = get_children_ids();
 
@@ -329,15 +327,70 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
     assert(change_values(original_leaf_node_values));
     assert(change_children_ids(original_leaf_node_children));
 
-    buffer_manager->unfix_block(block_id);
 
     return std::make_pair(new_leaf_node, median);
 }
 
 std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_value(int attribute, std::string const& left_children_id, std::string const& right_children_id)
 {
-    // Implement your solution here
-    return std::nullopt;
+    std::vector<int> values = get_values();
+    std::vector<std::string> children = get_children_ids();
+
+    // Use lower_bound to find the position where attribute should be inserted
+    auto it_values = std::lower_bound(values.begin(), values.end(), attribute);
+    // Calculate and return the index of the inserted value
+    int newIndex = std::distance(values.begin(), it_values);
+    // Insert the new value at the found position
+    values.insert(it_values, attribute);
+
+    if (children.empty()){
+        children.insert(children.begin() + newIndex, left_children_id);
+    } else {
+        children.at(newIndex) = left_children_id;
+    }
+    // add left_children_id and right_children_id
+    children.insert(children.begin() + newIndex+1, right_children_id);
+
+    // if we don't have to split node
+    if (values.size() <= MAX_VALUES) {
+
+        assert(change_values(values));
+        assert(change_children_ids(children));
+
+        return std::nullopt;
+    }
+
+    // if we have to split node
+    std::pair<int, int> median_pair = findMedian(values);
+    int median = median_pair.first;
+    int median_index = median_pair.second;
+
+    // Create two separate vectors based on the median_index for values and children
+
+    // adjust original internal node values
+    std::vector<int> original_internal_node_values(values.begin(), values.begin() + median_index);
+    std::vector<std::string> original_internal_node_children(children.begin(), children.begin() + median_index + 1);
+
+
+    // create new internal node values
+    std::vector<int> new_internal_node_values(values.begin() + median_index + 1, values.end());
+    std::vector<std::string> new_internal_node_children(children.begin() + median_index + 1, children.end());
+
+    // create new internal node
+    std::string node_id_new_internal_node = buffer_manager->create_new_block();
+
+    std::shared_ptr<BPTreeNode> new_internal_node = create_node(buffer_manager, node_id_new_internal_node, get_parent_id(), false);
+
+    // write new data to original internal node
+    assert(new_internal_node->change_values(new_internal_node_values));
+    assert(new_internal_node->change_children_ids(new_internal_node_children));
+
+    // write new data to original internal node
+    assert(change_values(original_internal_node_values));
+    assert(change_children_ids(original_internal_node_children));
+
+    return std::make_pair(new_internal_node, median);
+
 }
 
 bool BPTreeNode::hasDuplicates(const std::vector<int>& numbers) {
@@ -385,6 +438,7 @@ std::optional<std::string> BPTree::search_record(int attribute)
 {
     // find correct leaf node
     std::shared_ptr<BPTreeNode> leaf_node = find_leaf_node(attribute);
+    std::string leaf_node_parent = leaf_node->get_parent_id();
 
     std::vector<int> values = leaf_node->get_values();
     // children IDs are record IDs in leaf nodes
