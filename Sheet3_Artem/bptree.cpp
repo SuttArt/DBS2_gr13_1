@@ -245,9 +245,6 @@ std::shared_ptr<BPTreeNode> BPTreeNode::create_node(std::shared_ptr<BufferManage
 
 std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_record(int attribute, std::string const& record_id)
 {
-if (attribute == 912){
-    std::cout << attribute;
-}
     std::vector<int> values = get_values();
     std::vector<std::string> children = get_children_ids();
 
