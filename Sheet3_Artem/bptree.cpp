@@ -258,7 +258,7 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
 
     // if we have last pointer without value
     std::string last_child;
-    if (!values.empty() && values.size() - children.size() == 1) {
+    if (!values.empty() && (children.size() - values.size()) == 1) {
         last_child = children.back();
     }
 
@@ -313,6 +313,10 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_re
     std::string node_id_new_leaf_node = buffer_manager->create_new_block();
 
     std::shared_ptr<BPTreeNode> new_leaf_node = create_node(buffer_manager, node_id_new_leaf_node, get_parent_id(), true);
+
+    // add pointer for new block to next block
+    if (!last_child.empty())
+        new_leaf_node_children.push_back(last_child);
 
     // write new data to original leaf node
     assert(new_leaf_node->change_values(new_leaf_node_values));
@@ -385,6 +389,12 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
     // write new data to original internal node
     assert(change_values(original_internal_node_values));
     assert(change_children_ids(original_internal_node_children));
+
+    // adapt parent node references
+    for (size_t i = 0; i < new_internal_node_children.size(); ++i) {
+        std::shared_ptr<BPTreeNode> child_node = std::make_shared<BPTreeNode>(buffer_manager, new_internal_node_children[i]);
+        child_node->change_parent_id(new_internal_node->get_node_id());
+    }
 
     return std::make_pair(new_internal_node, median);
 
