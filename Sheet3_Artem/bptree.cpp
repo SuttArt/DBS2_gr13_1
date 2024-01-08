@@ -243,6 +243,40 @@ std::shared_ptr<BPTreeNode> BPTreeNode::create_node(std::shared_ptr<BufferManage
     return std::make_shared<BPTreeNode>(buffer_manager, node_id);
 }
 
+bool hasDuplicates(const std::vector<int>& numbers) {
+    std::set<int> uniqueNumbers;
+
+    for (int num : numbers) {
+        // Try to insert the current number into the set
+        auto result = uniqueNumbers.insert(num);
+
+        // If the insertion fails, it means the number is already present (duplicate)
+        if (!result.second) {
+            return true; // Duplicate found
+        }
+    }
+
+    return false; // No duplicates found
+}
+std::pair<int, int> findMedian(const std::vector<int>& numbers) {
+    // Create a copy of the vector to avoid modifying the original
+    std::vector<int> sortedNumbers = numbers;
+
+    // Calculate the index of the middle element
+    size_t size = sortedNumbers.size();
+    size_t middleIndex = size / 2;
+
+    // Check if the number of elements is odd or even
+    if (size % 2 == 1) {
+        // Odd number of elements, return the middle element
+        middleIndex + 1;
+    }
+
+    // Even number of elements, return the average of the two middle elements
+    return std::make_pair(sortedNumbers[middleIndex], middleIndex);
+
+}
+
 std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_record(int attribute, std::string const& record_id)
 {
     std::vector<int> values = get_values();
@@ -397,40 +431,6 @@ std::optional<std::pair<std::shared_ptr<BPTreeNode>, int>> BPTreeNode::insert_va
     }
 
     return std::make_pair(new_internal_node, median);
-
-}
-
-bool BPTreeNode::hasDuplicates(const std::vector<int>& numbers) {
-    std::set<int> uniqueNumbers;
-
-    for (int num : numbers) {
-        // Try to insert the current number into the set
-        auto result = uniqueNumbers.insert(num);
-
-        // If the insertion fails, it means the number is already present (duplicate)
-        if (!result.second) {
-            return true; // Duplicate found
-        }
-    }
-
-    return false; // No duplicates found
-}
-std::pair<int, int> BPTreeNode::findMedian(const std::vector<int>& numbers) {
-    // Create a copy of the vector to avoid modifying the original
-    std::vector<int> sortedNumbers = numbers;
-
-    // Calculate the index of the middle element
-    size_t size = sortedNumbers.size();
-    size_t middleIndex = size / 2;
-
-    // Check if the number of elements is odd or even
-    if (size % 2 == 1) {
-        // Odd number of elements, return the middle element
-        middleIndex + 1;
-    }
-
-    // Even number of elements, return the average of the two middle elements
-    return std::make_pair(sortedNumbers[middleIndex], middleIndex);
 
 }
 

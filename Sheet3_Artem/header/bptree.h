@@ -43,9 +43,6 @@ public:
     static int const MAX_CHILDREN = 30;
 
 private:
-    bool hasDuplicates(const std::vector<int>& numbers);
-    std::pair<int, int> findMedian(const std::vector<int>& numbers);
-
     std::shared_ptr<BufferManager> buffer_manager;
     std::string block_id;
 };
