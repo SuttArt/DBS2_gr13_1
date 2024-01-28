@@ -194,18 +194,46 @@ Distinct::Distinct(std::shared_ptr<BufferManager> const& buffer_manager, std::sh
 
 bool Distinct::open()
 {
-    // Implement your solution here
-    return false;
+    // create node information
+    std::string root_node_id = buffer_manager->create_new_block();
+    // create bptree
+    bptree = std::make_shared<BPTree>(buffer_manager, root_node_id);
+    tmp_block= std::make_shared<Block>(root_node_id);
+
+    return source->open();
 }
 
 std::shared_ptr<Record> Distinct::next()
 {
-    // Implement your solution here
-    return nullptr;
+    std::shared_ptr<Record> return_record;
+
+    // get record
+    std::shared_ptr<Record> record;
+
+    tmp_block = buffer_manager->fix_block(tmp_block->get_block_id());
+
+    for (int i = 0; i < Block::MAX_RECORDS; i++) {
+        record = source->next();
+
+        // insert record hash
+        try {
+            if(bptree->insert_record(record->get_hash(), record->get_record_id())) {
+                return_record = record;
+                break;
+            }
+        } catch (const std::invalid_argument& e) {
+            continue;
+        }
+    }
+
+    buffer_manager->unfix_block(tmp_block->get_block_id());
+
+    return return_record;
 }
 
 bool Distinct::close()
 {
-    // Implement your solution here
-    return false;
+    bptree->erase();
+    buffer_manager->erase_block(tmp_block->get_block_id());
+    return source->close();
 }

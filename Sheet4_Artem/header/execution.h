@@ -91,6 +91,8 @@ private:
     std::shared_ptr<BufferManager> buffer_manager;
     std::shared_ptr<QueryOperator> source;
     std::shared_ptr<BPTree> bptree;
+
+    std::shared_ptr<Block> tmp_block;
 };
 
 #endif
