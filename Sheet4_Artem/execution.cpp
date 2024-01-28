@@ -117,20 +117,75 @@ int attribute_position, std::string const& attribute_type, Record::Attribute con
 
 bool Selection::open()
 {
-    // Implement your solution here
-    return false;
+    return source->open();
 }
 
-std::shared_ptr<Record> Selection::next()
-{
-    // Implement your solution here
-    return nullptr;
+std::shared_ptr<Record> Selection::next() {
+    Record::Attribute attribute_to_compare;
+    std::shared_ptr<Record> return_record;
+
+    // iterate through the block
+    for (int i = 0; i < Block::MAX_RECORDS; i++) {
+        // get record
+        std::shared_ptr<Record> record = source->next();
+
+        // abort if no record available
+        if (record == nullptr)
+        {
+            return nullptr;
+        }
+
+        // fix block from record?!
+
+        if (attribute_type == "int")
+            attribute_to_compare = record->get_integer_attribute(attribute_position);
+        else if (attribute_type == "string")
+            attribute_to_compare =  record->get_string_attribute(attribute_position);
+        else if (attribute_type == "bool")
+            attribute_to_compare = record->get_boolean_attribute(attribute_position);
+
+
+        // all comparators: (==, !=, <, <=, >, >=)
+
+        if (comparator == "==") {
+            if (attribute_to_compare == value) {
+                return_record = std::make_shared<Record>(Record(record->get_record_id(), {attribute_to_compare}));
+                break;
+            }
+        } else if (comparator == "!=") {
+            if (attribute_to_compare != value) {
+                return_record = std::make_shared<Record>(Record(record->get_record_id(), {attribute_to_compare}));
+                break;
+            }
+        } else if (comparator == "<") {
+            if (attribute_to_compare < value) {
+                return_record = std::make_shared<Record>(Record(record->get_record_id(), {attribute_to_compare}));
+                break;
+            }
+        } else if (comparator == "<=") {
+            if (attribute_to_compare <= value) {
+                return_record = std::make_shared<Record>(Record(record->get_record_id(), {attribute_to_compare}));
+                break;
+            }
+        } else if (comparator == ">") {
+            if (attribute_to_compare > value) {
+                return_record = std::make_shared<Record>(Record(record->get_record_id(), {attribute_to_compare}));
+                break;
+            }
+        } else if (comparator == ">=") {
+            if (attribute_to_compare >= value) {
+                return_record = std::make_shared<Record>(Record(record->get_record_id(), {attribute_to_compare}));
+                break;
+            }
+        }
+    }
+
+    return return_record;
 }
 
 bool Selection::close()
 {
-    // Implement your solution here
-    return false;
+    return source->close();
 }
 
 
