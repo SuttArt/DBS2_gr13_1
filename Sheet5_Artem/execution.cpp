@@ -242,9 +242,13 @@ bool Join::open()
     Record::Attribute attribute_to_compare_source1;
     Record::Attribute attribute_to_compare_source2;
     bool comparison_result = false;
-    int block_records_count = 0;
-    bool first_block_created = false;
 
+    // create new block
+    tmp_block_id = buffer_manager->create_new_block();
+    // save block id
+    tmp_block_ids.push_back(tmp_block_id);
+
+    source1->open();
     // get record from source1
     std::shared_ptr<Record> record_source1 = source1->next();
     while (record_source1)
@@ -260,6 +264,7 @@ bool Join::open()
         else if (attribute_type1 == "bool")
             attribute_to_compare_source1 = record_source1->get_boolean_attribute(attribute_position1);
 
+        source2->open();
         // get record from source2
         std::shared_ptr<Record> record_source2 = source2->next();
         while (record_source2)
@@ -309,26 +314,36 @@ bool Join::open()
                         attributes_to_add.push_back(record_source2->get_boolean_attribute(i));
                 }
 
-                if (!first_block_created || block_records_count == Block::MAX_RECORDS - 1)
+                // fix block
+                std::shared_ptr<Block> tmp_block = buffer_manager->fix_block(tmp_block_id);
+                // write data to block
+                std::shared_ptr<Record> tmp_record = tmp_block->add_record(attributes_to_add);
+
+                // block is full, new block required
+                if (tmp_record == nullptr)
                 {
+                    // unfix old block
+                    buffer_manager->unfix_block(tmp_block->get_block_id());
                     // create new block
                     tmp_block_id = buffer_manager->create_new_block();
                     // save block id
                     tmp_block_ids.push_back(tmp_block_id);
-                    first_block_created = true;
-                    block_records_count = 0;
+                    // fix new block
+                    std::shared_ptr<Block> tmp_block = buffer_manager->fix_block(tmp_block_id);
+                    // write data to new block
+                    tmp_block->add_record(attributes_to_add);
                 }
 
-                // fix block
-                std::shared_ptr<Block> tmp_block = buffer_manager->fix_block(tmp_block_id);
-                // write data to block
-                tmp_block->add_record(attributes_to_add);
-                block_records_count++;
                 //unfix block
-                buffer_manager->unfix_block(tmp_block->get_block_id());
+                buffer_manager->unfix_block(tmp_block_id);
             }
+
+            record_source2 = source2->next();
         }
+        source2->close();
+        record_source1 = source1->next();
     }
+    source1->close();
 
     tmp_table = std::make_shared<Table>(Table(buffer_manager, tmp_block_ids));
 
