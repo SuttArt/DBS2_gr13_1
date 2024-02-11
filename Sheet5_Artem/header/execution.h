@@ -120,6 +120,11 @@ private:
     std::vector<std::string> attribute_types1;
     std::vector<std::string> attribute_types2;
     std::string comparator;
+
+    std::string tmp_block_id;
+    std::vector<std::string> tmp_block_ids;
+
+    std::shared_ptr<Table> tmp_table;
 };
 
 #endif

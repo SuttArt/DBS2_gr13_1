@@ -238,18 +238,113 @@ Join::Join(std::shared_ptr<BufferManager> const& buffer_manager, std::shared_ptr
 
 bool Join::open()
 {
-    // Implement your solution here
-    return false;
+
+    Record::Attribute attribute_to_compare_source1;
+    Record::Attribute attribute_to_compare_source2;
+    bool comparison_result = false;
+    int block_records_count = 0;
+    bool first_block_created = false;
+
+    // get record from source1
+    std::shared_ptr<Record> record_source1 = source1->next();
+    while (record_source1)
+    {
+        std::string attribute_type1 = attribute_types1.at(attribute_position1);
+        std::string attribute_type2 = attribute_types2.at(attribute_position2);
+
+        // define attribute from source 1
+        if (attribute_type1 == "int")
+            attribute_to_compare_source1 = record_source1->get_integer_attribute(attribute_position1);
+        else if (attribute_type1 == "string")
+            attribute_to_compare_source1 = record_source1->get_string_attribute(attribute_position1);
+        else if (attribute_type1 == "bool")
+            attribute_to_compare_source1 = record_source1->get_boolean_attribute(attribute_position1);
+
+        // get record from source2
+        std::shared_ptr<Record> record_source2 = source2->next();
+        while (record_source2)
+        {
+            // define attribute from source 1
+            if (attribute_type2 == "int")
+                attribute_to_compare_source2 = record_source2->get_integer_attribute(attribute_position2);
+            else if (attribute_type2 == "string")
+                attribute_to_compare_source2 = record_source2->get_string_attribute(attribute_position2);
+            else if (attribute_type2 == "bool")
+                attribute_to_compare_source2 = record_source2->get_boolean_attribute(attribute_position2);
+
+            if (comparator == "==")
+                comparison_result = attribute_to_compare_source1 == attribute_to_compare_source2;
+            else if (comparator == "!=")
+                comparison_result = attribute_to_compare_source1 != attribute_to_compare_source2;
+            else if (comparator == "<")
+                comparison_result = attribute_to_compare_source1 < attribute_to_compare_source2;
+            else if (comparator == "<=")
+                comparison_result = attribute_to_compare_source1 <= attribute_to_compare_source2;
+            else if (comparator == ">")
+                comparison_result = attribute_to_compare_source1 > attribute_to_compare_source2;
+            else if (comparator == ">=")
+                comparison_result = attribute_to_compare_source1 >= attribute_to_compare_source2;
+
+            //if true -> write to block
+            if (comparison_result)
+            {
+                // get attributes from source tuples
+                std::vector<std::variant<int, std::string, bool>> attributes_to_add;
+
+                for (size_t i = 0; i < attribute_types1.size(); i++) {
+                    if (attribute_types1[i] == "int")
+                        attributes_to_add.push_back(record_source1->get_integer_attribute(i));
+                    else if (attribute_types1[i] == "string")
+                        attributes_to_add.push_back(record_source1->get_string_attribute(i));
+                    else if (attribute_types1[i] == "bool")
+                        attributes_to_add.push_back(record_source1->get_boolean_attribute(i));
+                }
+
+                for (size_t i = 0; i < attribute_types2.size(); i++) {
+                    if (attribute_types2[i] == "int")
+                        attributes_to_add.push_back(record_source2->get_integer_attribute(i));
+                    else if (attribute_types2[i] == "string")
+                        attributes_to_add.push_back(record_source2->get_string_attribute(i));
+                    else if (attribute_types2[i] == "bool")
+                        attributes_to_add.push_back(record_source2->get_boolean_attribute(i));
+                }
+
+                if (!first_block_created || block_records_count == Block::MAX_RECORDS - 1)
+                {
+                    // create new block
+                    tmp_block_id = buffer_manager->create_new_block();
+                    // save block id
+                    tmp_block_ids.push_back(tmp_block_id);
+                    first_block_created = true;
+                    block_records_count = 0;
+                }
+
+                // fix block
+                std::shared_ptr<Block> tmp_block = buffer_manager->fix_block(tmp_block_id);
+                // write data to block
+                tmp_block->add_record(attributes_to_add);
+                block_records_count++;
+                //unfix block
+                buffer_manager->unfix_block(tmp_block->get_block_id());
+            }
+        }
+    }
+
+    tmp_table = std::make_shared<Table>(Table(buffer_manager, tmp_block_ids));
+
+    return tmp_table->open();
 }
 
 std::shared_ptr<Record> Join::next()
 {
-    // Implement your solution here
-    return nullptr;
+    return tmp_table->next();;
 }
 
 bool Join::close()
 {
-    // Implement your solution here
-    return false;
+    for (std::string block_id : tmp_block_ids) {
+        buffer_manager->erase_block(block_id);
+    }
+
+    return tmp_table->close();
 }
